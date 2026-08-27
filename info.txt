@@ -1,0 +1,25 @@
+ENTREGÁVEL 1 - PROJETO MARKETPLACE
+
+1) INTEGRANTES DO GRUPO
+- Lucas Zappeline
+- Leonardo Wecker
+- Luiz Becker
+
+2) IDEIA DO PROJETO
+Um marketplace de compra e venda de produtos entre usuários, inspirado no
+Enjoei, OLX e Facebook Marketplace. O usuário poderá cadastrar produtos
+para venda e negociar diretamente com compradores através de um chat
+integrado à plataforma.
+
+3) TECNOLOGIAS
+- Front-end: React + TypeScript
+- Back-end: Node.js + Express + TypeScript
+- ORM: Prisma
+- Banco de dados: PostgreSQL
+
+4) ARQUITETURA
+Arquitetura em camadas: Route -> Controller -> Service -> Repository -> ORM (Prisma)
+
+5) DEPLOY
+- Front-end: Vercel
+- Back-end + Banco: Render
