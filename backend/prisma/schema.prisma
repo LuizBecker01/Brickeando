@@ -7,44 +7,126 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id        String    @id @default(uuid())
-  name      String
-  email     String    @unique
-  password  String
-  createdAt DateTime  @default(now())
+enum ProductStatus {
+  DISPONIVEL
+  RESERVADO
+  VENDIDO
+}
 
-  products  Product[]
-  sentMessages     Message[] @relation("SentMessages")
-  receivedMessages Message[] @relation("ReceivedMessages")
+enum ConversationStatus {
+  OPEN
+  CLOSED
+}
+
+enum AuthProvider {
+  LOCAL
+  GOOGLE
+}
+
+model User {
+  id                 String          @id @default(uuid())
+  name               String?
+  email              String?         @unique
+  cpf                String          @unique
+  passwordHash       String?
+  provider           AuthProvider    @default(LOCAL)
+  providerId         String?
+  phone              String?
+  avatarUrl          String?
+  bio                String?
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+
+  products           Product[]       @relation("SellerProducts")
+  buyerConversations Conversation[]  @relation("BuyerConversations")
+  sellerConversations Conversation[] @relation("SellerConversations")
+  sentMessages       Message[]       @relation("SentMessages")
+  receivedMessages   Message[]       @relation("ReceivedMessages")
+}
+
+model Category {
+  id          String            @id @default(uuid())
+  name        String            @unique
+  slug        String            @unique
+  description String?
+  createdAt   DateTime          @default(now())
+
+  products    ProductCategory[]
 }
 
 model Product {
-  id          String   @id @default(uuid())
+  id          String            @id @default(uuid())
   title       String
   description String
   price       Decimal
   imageUrl    String?
-  status      String   @default("available") // available | sold | reserved
-  createdAt   DateTime @default(now())
+  status      ProductStatus     @default(DISPONIVEL)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
 
   sellerId    String
-  seller      User     @relation(fields: [sellerId], references: [id])
+  seller      User              @relation("SellerProducts", fields: [sellerId], references: [id], onDelete: Cascade)
 
+  categories  ProductCategory[]
+  images      ProductImage[]
+  conversations Conversation[]
   messages    Message[]
 }
 
-model Message {
-  id         String   @id @default(uuid())
-  content    String
-  createdAt  DateTime @default(now())
-
+model ProductCategory {
   productId  String
-  product    Product  @relation(fields: [productId], references: [id])
+  categoryId String
 
-  senderId   String
-  sender     User     @relation("SentMessages", fields: [senderId], references: [id])
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
 
-  receiverId String
-  receiver   User     @relation("ReceivedMessages", fields: [receiverId], references: [id])
+  @@id([productId, categoryId])
+}
+
+model ProductImage {
+  id        String   @id @default(uuid())
+  url       String
+  altText   String?
+  createdAt DateTime @default(now())
+
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
+
+model Conversation {
+  id        String             @id @default(uuid())
+  status    ConversationStatus @default(OPEN)
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+
+  productId String
+  product   Product            @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  buyerId   String
+  buyer     User               @relation("BuyerConversations", fields: [buyerId], references: [id], onDelete: Cascade)
+
+  sellerId  String
+  seller    User               @relation("SellerConversations", fields: [sellerId], references: [id], onDelete: Cascade)
+
+  messages  Message[]
+
+  @@unique([productId, buyerId, sellerId])
+}
+
+model Message {
+  id             String       @id @default(uuid())
+  content        String
+  createdAt      DateTime     @default(now())
+
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  senderId       String
+  sender         User         @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+
+  receiverId     String
+  receiver       User         @relation("ReceivedMessages", fields: [receiverId], references: [id], onDelete: Cascade)
+
+  productId      String?
+  product        Product?     @relation(fields: [productId], references: [id], onDelete: SetNull)
 }
