@@ -37,7 +37,19 @@ export interface AuthSessionResponse {
   };
 }
 
-const API_BASE_URL = "http://localhost:777/api";
+const API_BASE_URL = (import.meta.env.VITE_API_URL as string | undefined) ?? "http://localhost:777/api";
+
+function getAuthHeaders(): Record<string, string> {
+  const rawSession = localStorage.getItem("brickeando_session");
+  const session = rawSession ? JSON.parse(rawSession) : null;
+
+  return session?.token
+    ? {
+        Authorization: `Bearer ${session.token}`,
+        "Content-Type": "application/json",
+      }
+    : { "Content-Type": "application/json" };
+}
 
 async function handleResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
@@ -69,13 +81,39 @@ export const api = {
   }): Promise<ProductApiResponse> {
     const response = await fetch(`${API_BASE_URL}/products`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: getAuthHeaders(),
       body: JSON.stringify(payload),
     });
 
     return handleResponse<ProductApiResponse>(response);
+  },
+
+  async updateProduct(productId: string, payload: {
+    title?: string;
+    description?: string;
+    price?: number;
+    imageUrl?: string | null;
+    status?: "DISPONIVEL" | "RESERVADO" | "VENDIDO";
+  }): Promise<ProductApiResponse> {
+    const response = await fetch(`${API_BASE_URL}/products/${productId}`, {
+      method: "PATCH",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(payload),
+    });
+
+    return handleResponse<ProductApiResponse>(response);
+  },
+
+  async deleteProduct(productId: string): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}/products/${productId}`, {
+      method: "DELETE",
+      headers: getAuthHeaders(),
+    });
+
+    if (!response.ok) {
+      const errorBody = await response.json().catch(() => null);
+      throw new Error(errorBody?.message ?? "Erro ao excluir o produto.");
+    }
   },
 
   async registerLocal(payload: { cpf: string; password: string; name?: string }): Promise<AuthSessionResponse> {

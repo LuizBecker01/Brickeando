@@ -64,7 +64,7 @@ const mapUser = (user: {
   provider?: "LOCAL" | "GOOGLE";
 }) => ({
   id: user.id,
-  name: user.name ?? "Usuário",
+  name: user.name ?? user.cpf ?? "Usuário",
   email: user.email ?? "",
   cpf: user.cpf ?? "",
   phone: user.phone,
@@ -95,7 +95,7 @@ export const userService = {
     const user = await userRepository.create({
       ...payload,
       cpf,
-      name: payload.name?.trim() || `Usuário ${cpf.slice(-4)}`,
+      name: payload.name?.trim() || cpf,
       email: payload.email?.trim().toLowerCase() || null,
       passwordHash,
       provider: "LOCAL",

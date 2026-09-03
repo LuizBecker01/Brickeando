@@ -30,7 +30,7 @@ app.use((req: Request, res: Response) => {
 
 app.use(errorHandlerMiddleware);
 
-const PORT = Number(process.env.PORT ?? 3333);
+const PORT = Number(process.env.PORT ?? 777);
 const server = configureSocket(app);
 
 server.listen(PORT, () => {

@@ -23,7 +23,12 @@ export const productController = {
 
   async createProduct(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const product = await productService.createProduct(req.body);
+      const payload = {
+        ...req.body,
+        sellerId: req.user?.id ?? req.body?.sellerId,
+      };
+
+      const product = await productService.createProduct(payload);
       res.status(201).json(product);
     } catch (error) {
       next(error);
@@ -32,7 +37,13 @@ export const productController = {
 
   async updateProduct(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const product = await productService.updateProduct(req.params.id, req.body);
+      const currentUserId = req.user?.id;
+
+      if (!currentUserId) {
+        throw new Error("Usuário não autenticado.");
+      }
+
+      const product = await productService.updateProduct(req.params.id, req.body, currentUserId);
       res.status(200).json(product);
     } catch (error) {
       next(error);
@@ -41,7 +52,13 @@ export const productController = {
 
   async deleteProduct(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      await productService.deleteProduct(req.params.id);
+      const currentUserId = req.user?.id;
+
+      if (!currentUserId) {
+        throw new Error("Usuário não autenticado.");
+      }
+
+      await productService.deleteProduct(req.params.id, currentUserId);
       res.status(204).send();
     } catch (error) {
       next(error);

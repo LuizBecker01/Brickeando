@@ -12,10 +12,15 @@ const formatStatus = (status: Product["status"]) => {
 
 interface ProductCardProps {
   product: Product;
+  currentUserId?: string;
   onSelect?: (productId: string) => void;
+  onEdit?: (product: Product) => void;
+  onDelete?: (productId: string) => void;
 }
 
-export function ProductCard({ product, onSelect }: ProductCardProps) {
+export function ProductCard({ product, currentUserId, onSelect, onEdit, onDelete }: ProductCardProps) {
+  const isOwner = currentUserId && product.seller.id === currentUserId;
+
   return (
     <article className="product-card" onClick={() => onSelect?.(product.id)}>
       <img
@@ -32,6 +37,25 @@ export function ProductCard({ product, onSelect }: ProductCardProps) {
       <p className="product-card-description">{product.description}</p>
       <div className="product-price">R$ {Number(product.price).toFixed(2)}</div>
       <p className="product-seller">Vendedor: {product.seller.name}</p>
+
+      {isOwner ? (
+        <div className="product-actions" onClick={(event) => event.stopPropagation()}>
+          <button
+            type="button"
+            className="inventory-action secondary"
+            onClick={() => onEdit?.(product)}
+          >
+            Editar
+          </button>
+          <button
+            type="button"
+            className="inventory-action danger"
+            onClick={() => onDelete?.(product.id)}
+          >
+            Excluir
+          </button>
+        </div>
+      ) : null}
     </article>
   );
 }

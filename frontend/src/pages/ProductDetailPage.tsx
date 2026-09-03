@@ -16,9 +16,12 @@ const formatStatus = (status: Product["status"]) => {
 
 interface ProductDetailPageProps {
   productId: string;
+  currentUserId?: string;
+  onEdit?: (product: Product) => void;
+  onDelete?: (productId: string) => void;
 }
 
-export function ProductDetailPage({ productId }: ProductDetailPageProps) {
+export function ProductDetailPage({ productId, currentUserId, onEdit, onDelete }: ProductDetailPageProps) {
   const [product, setProduct] = useState<Product | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -73,6 +76,8 @@ export function ProductDetailPage({ productId }: ProductDetailPageProps) {
     return <p>Produto não encontrado.</p>;
   }
 
+  const isOwner = Boolean(currentUserId && product.seller.id === currentUserId);
+
   return (
     <div>
       <div className="detail-layout">
@@ -89,6 +94,17 @@ export function ProductDetailPage({ productId }: ProductDetailPageProps) {
           <p className="detail-description">{product.description}</p>
           <p><strong>Vendedor:</strong> {product.seller.name}</p>
           <p><strong>Categorias:</strong> {product.categories.map((category) => category.name).join(", ") || "Sem categoria"}</p>
+
+          {isOwner ? (
+            <div className="product-actions detail-actions">
+              <button type="button" className="inventory-action secondary" onClick={() => onEdit?.(product)}>
+                Editar
+              </button>
+              <button type="button" className="inventory-action danger" onClick={() => onDelete?.(product.id)}>
+                Excluir
+              </button>
+            </div>
+          ) : null}
         </aside>
       </div>
 

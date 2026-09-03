@@ -127,7 +127,7 @@ export const productService = {
     });
   },
 
-  async updateProduct(id: string, payload: UpdateProductDto) {
+  async updateProduct(id: string, payload: UpdateProductDto, currentUserId?: string) {
     validateUpdateProductInput(payload);
 
     const existingProduct = await productRepository.findById(id);
@@ -136,17 +136,25 @@ export const productService = {
       throw new AppError("Produto não encontrado.", HttpStatus.NOT_FOUND);
     }
 
+    if (currentUserId && existingProduct.sellerId !== currentUserId) {
+      throw new AppError("Você só pode editar seus próprios produtos.", HttpStatus.FORBIDDEN);
+    }
+
     return productRepository.update(id, {
       ...payload,
       status: payload.status ? normalizeStatus(payload.status) : undefined,
     });
   },
 
-  async deleteProduct(id: string) {
+  async deleteProduct(id: string, currentUserId?: string) {
     const existingProduct = await productRepository.findById(id);
 
     if (!existingProduct) {
       throw new AppError("Produto não encontrado.", HttpStatus.NOT_FOUND);
+    }
+
+    if (currentUserId && existingProduct.sellerId !== currentUserId) {
+      throw new AppError("Você só pode excluir seus próprios produtos.", HttpStatus.FORBIDDEN);
     }
 
     return productRepository.delete(id);
