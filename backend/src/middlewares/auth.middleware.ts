@@ -1,30 +1,43 @@
 import { NextFunction, Request, Response } from "express";
-import jwt from "jsonwebtoken";
 import { AppError } from "../errors/app-error";
 import { HttpStatus } from "../errors/http-status";
+import { verifyAppToken } from "../utils/jwt";
 
-const JWT_SECRET = process.env.JWT_SECRET ?? "brickeando-dev-secret";
-
-export const authMiddleware = (req: Request, _res: Response, next: NextFunction): void => {
+export const authMiddleware = (
+  req: Request,
+  _res: Response,
+  next: NextFunction,
+): void => {
   const authorizationHeader = req.headers.authorization;
 
   if (!authorizationHeader || !authorizationHeader.startsWith("Bearer ")) {
-    next(new AppError("Token de autenticação ausente ou inválido.", HttpStatus.UNPROCESSABLE_ENTITY));
+    next(
+      new AppError(
+        "Token de autenticação ausente ou inválido.",
+        HttpStatus.UNAUTHORIZED,
+      ),
+    );
     return;
   }
 
   const token = authorizationHeader.replace("Bearer ", "");
 
   try {
-    const payload = jwt.verify(token, JWT_SECRET) as { sub: string; email: string };
+    const payload = verifyAppToken(token);
 
     req.user = {
       id: payload.sub,
       email: payload.email,
+      name: payload.name ?? "Usuário",
     };
 
     next();
   } catch (_error) {
-    next(new AppError("Token de autenticação inválido.", HttpStatus.UNPROCESSABLE_ENTITY));
+    next(
+      new AppError(
+        "Token de autenticação inválido ou expirado.",
+        HttpStatus.UNAUTHORIZED,
+      ),
+    );
   }
 };

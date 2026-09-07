@@ -7,4 +7,6 @@ export const userRoutes = Router();
 userRoutes.post("/users/register", userController.register);
 userRoutes.post("/users/login", userController.login);
 userRoutes.post("/users/google", userController.googleLogin);
+userRoutes.post("/auth/register", userController.register);
+userRoutes.post("/auth/login", userController.login);
 userRoutes.get("/users/me", authMiddleware, userController.profile);

@@ -46,18 +46,27 @@ const validateCreateProductInput = (payload: CreateProductDto): void => {
   }
 
   if (!payload.sellerId || payload.sellerId.trim().length === 0) {
-    throw new AppError("O identificador do vendedor é obrigatório.", HttpStatus.BAD_REQUEST);
+    throw new AppError(
+      "O identificador do vendedor é obrigatório.",
+      HttpStatus.BAD_REQUEST,
+    );
   }
 
   if (payload.price === undefined || Number(payload.price) <= 0) {
-    throw new AppError("O preço deve ser maior que zero.", HttpStatus.BAD_REQUEST);
+    throw new AppError(
+      "O preço deve ser maior que zero.",
+      HttpStatus.BAD_REQUEST,
+    );
   }
 
   if (payload.categoryIds && payload.categoryIds.length > 0) {
     const uniqueIds = new Set(payload.categoryIds);
 
     if (uniqueIds.size !== payload.categoryIds.length) {
-      throw new AppError("As categorias não podem se repetir.", HttpStatus.BAD_REQUEST);
+      throw new AppError(
+        "As categorias não podem se repetir.",
+        HttpStatus.BAD_REQUEST,
+      );
     }
   }
 };
@@ -72,7 +81,10 @@ const validateUpdateProductInput = (payload: UpdateProductDto): void => {
     payload.categoryIds !== undefined;
 
   if (!hasAnyField) {
-    throw new AppError("Informe ao menos um campo para atualização.", HttpStatus.BAD_REQUEST);
+    throw new AppError(
+      "Informe ao menos um campo para atualização.",
+      HttpStatus.BAD_REQUEST,
+    );
   }
 
   if (payload.title !== undefined && payload.title.trim().length < 3) {
@@ -82,7 +94,10 @@ const validateUpdateProductInput = (payload: UpdateProductDto): void => {
     );
   }
 
-  if (payload.description !== undefined && payload.description.trim().length < 10) {
+  if (
+    payload.description !== undefined &&
+    payload.description.trim().length < 10
+  ) {
     throw new AppError(
       "A descrição deve conter pelo menos 10 caracteres.",
       HttpStatus.BAD_REQUEST,
@@ -90,22 +105,47 @@ const validateUpdateProductInput = (payload: UpdateProductDto): void => {
   }
 
   if (payload.price !== undefined && Number(payload.price) <= 0) {
-    throw new AppError("O preço deve ser maior que zero.", HttpStatus.BAD_REQUEST);
+    throw new AppError(
+      "O preço deve ser maior que zero.",
+      HttpStatus.BAD_REQUEST,
+    );
   }
 
   if (payload.categoryIds && payload.categoryIds.length > 0) {
     const uniqueIds = new Set(payload.categoryIds);
 
     if (uniqueIds.size !== payload.categoryIds.length) {
-      throw new AppError("As categorias não podem se repetir.", HttpStatus.BAD_REQUEST);
+      throw new AppError(
+        "As categorias não podem se repetir.",
+        HttpStatus.BAD_REQUEST,
+      );
     }
   }
 };
 
 export const productService = {
-  async listProducts(status?: string) {
-    const normalizedStatus = normalizeStatus(status);
-    return productRepository.findAll(normalizedStatus);
+  async listProducts(filters?: {
+    status?: string;
+    categoryId?: string;
+    minPrice?: number;
+    maxPrice?: number;
+    latitude?: number;
+    longitude?: number;
+    radiusKm?: number;
+  }) {
+    return productRepository.findAll({
+      status: normalizeStatus(filters?.status),
+      categoryId: filters?.categoryId,
+      minPrice: filters?.minPrice,
+      maxPrice: filters?.maxPrice,
+      latitude: filters?.latitude,
+      longitude: filters?.longitude,
+      radiusKm: filters?.radiusKm,
+    });
+  },
+
+  async listCategories() {
+    return productRepository.findCategories();
   },
 
   async getProductById(id: string) {
@@ -127,7 +167,11 @@ export const productService = {
     });
   },
 
-  async updateProduct(id: string, payload: UpdateProductDto, currentUserId?: string) {
+  async updateProduct(
+    id: string,
+    payload: UpdateProductDto,
+    currentUserId?: string,
+  ) {
     validateUpdateProductInput(payload);
 
     const existingProduct = await productRepository.findById(id);
@@ -137,7 +181,10 @@ export const productService = {
     }
 
     if (currentUserId && existingProduct.sellerId !== currentUserId) {
-      throw new AppError("Você só pode editar seus próprios produtos.", HttpStatus.FORBIDDEN);
+      throw new AppError(
+        "Você só pode editar seus próprios produtos.",
+        HttpStatus.FORBIDDEN,
+      );
     }
 
     return productRepository.update(id, {
@@ -154,7 +201,10 @@ export const productService = {
     }
 
     if (currentUserId && existingProduct.sellerId !== currentUserId) {
-      throw new AppError("Você só pode excluir seus próprios produtos.", HttpStatus.FORBIDDEN);
+      throw new AppError(
+        "Você só pode excluir seus próprios produtos.",
+        HttpStatus.FORBIDDEN,
+      );
     }
 
     return productRepository.delete(id);

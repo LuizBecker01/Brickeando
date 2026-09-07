@@ -13,6 +13,13 @@ enum ProductStatus {
   VENDIDO
 }
 
+enum ProductCondition {
+  NOVO
+  SEMINOVO
+  USADO
+  PARA_REPARO
+}
+
 enum ConversationStatus {
   OPEN
   CLOSED
@@ -60,7 +67,11 @@ model Product {
   description String
   price       Decimal
   imageUrl    String?
+  locationName String?
+  latitude    Float?
+  longitude   Float?
   status      ProductStatus     @default(DISPONIVEL)
+  condition   ProductCondition  @default(USADO)
   createdAt   DateTime          @default(now())
   updatedAt   DateTime          @updatedAt
 

@@ -26,12 +26,74 @@ const productInclude = {
 } as const;
 
 export const productRepository = {
-  async findAll(status?: ProductStatus) {
-    return prisma.product.findMany({
-      where: status ? { status } : undefined,
+  async findAll(filters?: {
+    status?: ProductStatus;
+    categoryId?: string;
+    minPrice?: number;
+    maxPrice?: number;
+    latitude?: number;
+    longitude?: number;
+    radiusKm?: number;
+  }) {
+    const products = await prisma.product.findMany({
+      where: {
+        ...(filters?.status ? { status: filters.status } : {}),
+        ...(filters?.categoryId
+          ? { categories: { some: { categoryId: filters.categoryId } } }
+          : {}),
+        ...(filters?.minPrice !== undefined || filters?.maxPrice !== undefined
+          ? {
+              price: {
+                ...(filters.minPrice !== undefined
+                  ? { gte: filters.minPrice }
+                  : {}),
+                ...(filters.maxPrice !== undefined
+                  ? { lte: filters.maxPrice }
+                  : {}),
+              },
+            }
+          : {}),
+      },
       include: productInclude,
       orderBy: { createdAt: "desc" },
     });
+
+    if (
+      filters?.latitude === undefined ||
+      filters.longitude === undefined ||
+      filters.radiusKm === undefined
+    ) {
+      return products;
+    }
+
+    const earthRadiusKm = 6371;
+    return products.filter((product) => {
+      if (product.latitude === null || product.longitude === null) {
+        return false;
+      }
+
+      const latitudeDelta =
+        ((product.latitude - filters.latitude!) * Math.PI) / 180;
+      const longitudeDelta =
+        ((product.longitude - filters.longitude!) * Math.PI) / 180;
+      const originLatitude = (filters.latitude! * Math.PI) / 180;
+      const productLatitude = (product.latitude * Math.PI) / 180;
+      const haversine =
+        Math.sin(latitudeDelta / 2) ** 2 +
+        Math.sin(longitudeDelta / 2) ** 2 *
+          Math.cos(originLatitude) *
+          Math.cos(productLatitude);
+      const distanceKm =
+        earthRadiusKm *
+        2 *
+        Math.atan2(Math.sqrt(haversine), Math.sqrt(1 - haversine));
+
+      return distanceKm <= filters.radiusKm!;
+    });
+  },
+
+  async findCategories() {
+    return prisma.category.findMany({ orderBy: { name: "asc" } });
   },
 
   async findById(id: string) {
@@ -43,6 +105,7 @@ export const productRepository = {
 
   async create(data: CreateProductDto) {
     const categoryIds = data.categoryIds ?? [];
+    const imageUrls = data.imageUrls ?? (data.imageUrl ? [data.imageUrl] : []);
 
     return prisma.product.create({
       data: {
@@ -50,7 +113,16 @@ export const productRepository = {
         description: data.description.trim(),
         price: new Prisma.Decimal(data.price),
         imageUrl: data.imageUrl ?? null,
+        locationName: data.locationName ?? null,
+        latitude: data.latitude ?? null,
+        longitude: data.longitude ?? null,
         status: data.status ?? "DISPONIVEL",
+        condition: data.condition ?? "USADO",
+        ...(imageUrls.length > 0
+          ? {
+              images: { create: imageUrls.slice(0, 5).map((url) => ({ url })) },
+            }
+          : {}),
         seller: {
           connect: { id: data.sellerId },
         },
@@ -79,9 +151,23 @@ export const productRepository = {
         ...(data.description !== undefined && data.description.trim().length > 0
           ? { description: data.description.trim() }
           : {}),
-        ...(data.price !== undefined ? { price: new Prisma.Decimal(data.price) } : {}),
-        ...(data.imageUrl !== undefined ? { imageUrl: data.imageUrl ?? null } : {}),
+        ...(data.price !== undefined
+          ? { price: new Prisma.Decimal(data.price) }
+          : {}),
+        ...(data.imageUrl !== undefined
+          ? { imageUrl: data.imageUrl ?? null }
+          : {}),
+        ...(data.locationName !== undefined
+          ? { locationName: data.locationName ?? null }
+          : {}),
+        ...(data.latitude !== undefined
+          ? { latitude: data.latitude ?? null }
+          : {}),
+        ...(data.longitude !== undefined
+          ? { longitude: data.longitude ?? null }
+          : {}),
         ...(data.status ? { status: data.status } : {}),
+        ...(data.condition ? { condition: data.condition } : {}),
       };
 
       if (data.categoryIds !== undefined) {
@@ -95,6 +181,18 @@ export const productRepository = {
               productId: id,
               categoryId,
             })),
+          });
+        }
+      }
+
+      if (data.imageUrls !== undefined) {
+        await tx.productImage.deleteMany({ where: { productId: id } });
+
+        if (data.imageUrls.length > 0) {
+          await tx.productImage.createMany({
+            data: data.imageUrls
+              .slice(0, 5)
+              .map((url) => ({ productId: id, url })),
           });
         }
       }

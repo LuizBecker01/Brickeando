@@ -24,7 +24,11 @@ export interface ProductResponseDto {
   description: string;
   price: number | string;
   imageUrl?: string | null;
+  locationName?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
   status: ProductStatus;
+  condition: "NOVO" | "SEMINOVO" | "USADO" | "PARA_REPARO";
   createdAt: Date;
   updatedAt: Date;
   seller: ProductSellerDto;

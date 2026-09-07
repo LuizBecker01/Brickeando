@@ -21,10 +21,16 @@ interface ProductDetailPageProps {
   onDelete?: (productId: string) => void;
 }
 
-export function ProductDetailPage({ productId, currentUserId, onEdit, onDelete }: ProductDetailPageProps) {
+export function ProductDetailPage({
+  productId,
+  currentUserId,
+  onEdit,
+  onDelete,
+}: ProductDetailPageProps) {
   const [product, setProduct] = useState<Product | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isOwnerMenuOpen, setIsOwnerMenuOpen] = useState(false);
 
   useEffect(() => {
     const loadProduct = async () => {
@@ -38,7 +44,11 @@ export function ProductDetailPage({ productId, currentUserId, onEdit, onDelete }
           description: response.description,
           price: Number(response.price),
           status: response.status,
-          imageUrl: response.imageUrl ?? response.images?.[0]?.url ?? "https://placehold.co/900x700?text=Brickeando",
+          condition: response.condition,
+          imageUrl:
+            response.imageUrl ??
+            response.images?.[0]?.url ??
+            "https://placehold.co/900x700?text=Brickeando",
           seller: {
             id: response.seller?.id ?? "",
             name: response.seller?.name ?? "Vendedor",
@@ -53,7 +63,8 @@ export function ProductDetailPage({ productId, currentUserId, onEdit, onDelete }
 
         setProduct(normalizedProduct);
       } catch {
-        const foundDemoProduct = mockProducts.find((item) => item.id === productId) ?? mockProducts[0];
+        const foundDemoProduct =
+          mockProducts.find((item) => item.id === productId) ?? mockProducts[0];
         setProduct(foundDemoProduct ?? null);
         setError(null);
       } finally {
@@ -92,17 +103,47 @@ export function ProductDetailPage({ productId, currentUserId, onEdit, onDelete }
           <h1 className="detail-title">{product.title}</h1>
           <p className="detail-price">R$ {Number(product.price).toFixed(2)}</p>
           <p className="detail-description">{product.description}</p>
-          <p><strong>Vendedor:</strong> {product.seller.name}</p>
-          <p><strong>Categorias:</strong> {product.categories.map((category) => category.name).join(", ") || "Sem categoria"}</p>
+          <p>
+            <strong>Vendedor:</strong> {product.seller.name}
+          </p>
+          <p>
+            <strong>Localização:</strong>{" "}
+            {product.locationName ?? "Não informada"}
+          </p>
+          <p>
+            <strong>Condição:</strong> {product.condition.replace("_", " ")}
+          </p>
+          <p>
+            <strong>Categorias:</strong>{" "}
+            {product.categories.map((category) => category.name).join(", ") ||
+              "Sem categoria"}
+          </p>
 
           {isOwner ? (
-            <div className="product-actions detail-actions">
-              <button type="button" className="inventory-action secondary" onClick={() => onEdit?.(product)}>
-                Editar
+            <div className="owner-actions">
+              <button
+                type="button"
+                className="owner-menu-button"
+                aria-label="Mais opções do anúncio"
+                aria-expanded={isOwnerMenuOpen}
+                onClick={() => setIsOwnerMenuOpen((current) => !current)}
+              >
+                <span aria-hidden="true">...</span>
               </button>
-              <button type="button" className="inventory-action danger" onClick={() => onDelete?.(product.id)}>
-                Excluir
-              </button>
+              {isOwnerMenuOpen ? (
+                <div className="owner-menu">
+                  <button type="button" onClick={() => onEdit?.(product)}>
+                    Editar anúncio
+                  </button>
+                  <button
+                    type="button"
+                    className="owner-menu-danger"
+                    onClick={() => onDelete?.(product.id)}
+                  >
+                    Excluir anúncio
+                  </button>
+                </div>
+              ) : null}
             </div>
           ) : null}
         </aside>

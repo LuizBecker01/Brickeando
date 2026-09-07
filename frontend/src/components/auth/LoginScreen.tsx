@@ -1,7 +1,11 @@
 import { useState } from "react";
+import { api } from "../../services/api";
 
 interface LoginScreenProps {
-  onLogin: (session: { token: string; user: { id: string; name: string; email: string; cpf?: string } }) => void;
+  onLogin: (session: {
+    token: string;
+    user: { id: string; name: string; email: string; cpf?: string };
+  }) => void;
   authError?: string | null;
 }
 
@@ -23,30 +27,18 @@ export function LoginScreen({ onLogin, authError }: LoginScreenProps) {
       return;
     }
 
-    if (password.length < 4) {
-      setError("A senha deve ter pelo menos 4 caracteres.");
-      return;
-    }
-
     setError(null);
     setIsSubmitting(true);
 
     try {
-      const response = await fetch(mode === "login" ? "http://localhost:777/api/users/login" : "http://localhost:777/api/users/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(
-          mode === "login"
-            ? { cpf: plainCpf, password }
-            : { cpf: plainCpf, password, name: name.trim() || undefined },
-        ),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data?.message ?? "Não foi possível entrar no sistema.");
-      }
+      const data =
+        mode === "login"
+          ? await api.loginLocal({ cpf: plainCpf, password })
+          : await api.registerLocal({
+              cpf: plainCpf,
+              password,
+              name: name.trim() || undefined,
+            });
 
       onLogin({
         token: data.token,
@@ -58,7 +50,11 @@ export function LoginScreen({ onLogin, authError }: LoginScreenProps) {
         },
       });
     } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : "Não foi possível entrar.");
+      setError(
+        submitError instanceof Error
+          ? submitError.message
+          : "Não foi possível entrar.",
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -69,7 +65,9 @@ export function LoginScreen({ onLogin, authError }: LoginScreenProps) {
       <div className="auth-card">
         <img src="/logo.png" alt="Brickeando" className="auth-logo" />
         <h1>Entrar no Brickeando</h1>
-        <p>Para anunciar ou conversar com vendedores, você precisa estar logado.</p>
+        <p>
+          Para anunciar ou conversar com vendedores, você precisa estar logado.
+        </p>
 
         <div className="auth-toggle">
           <button
@@ -116,16 +114,27 @@ export function LoginScreen({ onLogin, authError }: LoginScreenProps) {
               type="password"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
-              placeholder="Mínimo 4 dígitos"
+              placeholder="Mínimo 8 caracteres"
             />
           </label>
 
-          <button type="button" className="hero-button solid auth-demo" onClick={submit} disabled={isSubmitting}>
-            {isSubmitting ? "Aguarde..." : mode === "login" ? "Entrar" : "Criar conta"}
+          <button
+            type="button"
+            className="hero-button solid auth-demo"
+            onClick={submit}
+            disabled={isSubmitting}
+          >
+            {isSubmitting
+              ? "Aguarde..."
+              : mode === "login"
+                ? "Entrar"
+                : "Criar conta"}
           </button>
         </div>
 
-        {(error || authError) ? <p className="auth-error">{error ?? authError}</p> : null}
+        {error || authError ? (
+          <p className="auth-error">{error ?? authError}</p>
+        ) : null}
       </div>
     </main>
   );

@@ -1,20 +1,13 @@
 import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
 import { OAuth2Client } from "google-auth-library";
 import { CreateUserDto } from "../dtos/user/create-user.dto";
 import { LoginUserDto } from "../dtos/user/login-user.dto";
 import { AppError } from "../errors/app-error";
 import { HttpStatus } from "../errors/http-status";
 import { userRepository } from "../repositories/user.repository";
-
-const JWT_SECRET = process.env.JWT_SECRET ?? "brickeando-dev-secret";
+import { validatePassword } from "../utils/password-validator";
+import { createAppToken } from "../utils/jwt";
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
-
-const createAppToken = (userId: string, email: string) => {
-  return jwt.sign({ sub: userId, email }, JWT_SECRET, {
-    expiresIn: "7d",
-  });
-};
 
 const normalizeCpf = (cpf?: string) => (cpf ?? "").replace(/\D/g, "");
 
@@ -82,16 +75,26 @@ export const userService = {
       throw new AppError("CPF inválido.", HttpStatus.BAD_REQUEST);
     }
 
-    if (!payload.password || payload.password.length < 4) {
-      throw new AppError("A senha deve ter pelo menos 4 caracteres.", HttpStatus.BAD_REQUEST);
+    const passwordValidation = validatePassword(payload.password ?? "");
+    if (!passwordValidation.isValid) {
+      throw new AppError(
+        "A senha não atende aos critérios de segurança.",
+        HttpStatus.BAD_REQUEST,
+        {
+          errors: passwordValidation.errors,
+        },
+      );
     }
 
     const existingUser = await userRepository.findByCpf(cpf);
     if (existingUser) {
-      throw new AppError("Já existe uma conta cadastrada com este CPF.", HttpStatus.CONFLICT);
+      throw new AppError(
+        "Já existe uma conta cadastrada com este CPF.",
+        HttpStatus.CONFLICT,
+      );
     }
 
-    const passwordHash = await bcrypt.hash(payload.password, 10);
+    const passwordHash = await bcrypt.hash(payload.password, 12);
     const user = await userRepository.create({
       ...payload,
       cpf,
@@ -101,7 +104,11 @@ export const userService = {
       provider: "LOCAL",
     });
 
-    const token = createAppToken(user.id, user.email ?? user.cpf);
+    const token = createAppToken(
+      user.id,
+      user.email ?? user.cpf,
+      user.name ?? user.cpf,
+    );
 
     return {
       user: mapUser(user),
@@ -117,24 +124,43 @@ export const userService = {
     }
 
     if (!payload.password || payload.password.length < 4) {
-      throw new AppError("A senha deve ter pelo menos 4 caracteres.", HttpStatus.BAD_REQUEST);
+      throw new AppError(
+        "A senha deve ter pelo menos 4 caracteres.",
+        HttpStatus.BAD_REQUEST,
+      );
     }
 
     const user = await userRepository.findByCpf(cpf);
     if (!user) {
-      throw new AppError("CPF ou senha inválidos.", HttpStatus.UNPROCESSABLE_ENTITY);
+      throw new AppError(
+        "CPF ou senha inválidos.",
+        HttpStatus.UNPROCESSABLE_ENTITY,
+      );
     }
 
     if (!user.passwordHash) {
-      throw new AppError("Esta conta foi criada com login social. Use o Google para entrar.", HttpStatus.UNPROCESSABLE_ENTITY);
+      throw new AppError(
+        "Esta conta foi criada com login social. Use o Google para entrar.",
+        HttpStatus.UNPROCESSABLE_ENTITY,
+      );
     }
 
-    const isPasswordValid = await bcrypt.compare(payload.password, user.passwordHash);
+    const isPasswordValid = await bcrypt.compare(
+      payload.password,
+      user.passwordHash,
+    );
     if (!isPasswordValid) {
-      throw new AppError("CPF ou senha inválidos.", HttpStatus.UNPROCESSABLE_ENTITY);
+      throw new AppError(
+        "CPF ou senha inválidos.",
+        HttpStatus.UNPROCESSABLE_ENTITY,
+      );
     }
 
-    const token = createAppToken(user.id, user.email ?? user.cpf);
+    const token = createAppToken(
+      user.id,
+      user.email ?? user.cpf,
+      user.name ?? user.cpf,
+    );
 
     return {
       user: mapUser(user),
@@ -144,12 +170,18 @@ export const userService = {
 
   async loginWithGoogle(credential: string) {
     if (!credential) {
-      throw new AppError("Credencial do Google ausente.", HttpStatus.BAD_REQUEST);
+      throw new AppError(
+        "Credencial do Google ausente.",
+        HttpStatus.BAD_REQUEST,
+      );
     }
 
     const googleClientId = process.env.GOOGLE_CLIENT_ID;
     if (!googleClientId) {
-      throw new AppError("Configuração do Google OAuth não encontrada no servidor.", HttpStatus.INTERNAL_SERVER_ERROR);
+      throw new AppError(
+        "Configuração do Google OAuth não encontrada no servidor.",
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
 
     try {
@@ -160,7 +192,10 @@ export const userService = {
 
       const payload = ticket.getPayload();
       if (!payload || !payload.email) {
-        throw new AppError("Não foi possível validar o usuário do Google.", HttpStatus.UNPROCESSABLE_ENTITY);
+        throw new AppError(
+          "Não foi possível validar o usuário do Google.",
+          HttpStatus.UNPROCESSABLE_ENTITY,
+        );
       }
 
       const email = payload.email.toLowerCase();
@@ -171,7 +206,11 @@ export const userService = {
         providerId: payload.sub,
       });
 
-      const token = createAppToken(user.id, user.email ?? user.cpf);
+      const token = createAppToken(
+        user.id,
+        user.email ?? user.cpf,
+        user.name ?? user.cpf,
+      );
 
       return {
         user: mapUser(user),
@@ -182,7 +221,10 @@ export const userService = {
         throw error;
       }
 
-      throw new AppError("Token do Google inválido ou expirado.", HttpStatus.UNPROCESSABLE_ENTITY);
+      throw new AppError(
+        "Token do Google inválido ou expirado.",
+        HttpStatus.UNPROCESSABLE_ENTITY,
+      );
     }
   },
 
@@ -193,6 +235,6 @@ export const userService = {
       throw new AppError("Usuário não encontrado.", HttpStatus.NOT_FOUND);
     }
 
-    return user;
+    return mapUser(user);
   },
 };
