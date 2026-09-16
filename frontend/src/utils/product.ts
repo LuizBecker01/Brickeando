@@ -17,6 +17,9 @@ export const normalizeProduct = (
   latitude: product.latitude,
   longitude: product.longitude,
   imageUrl: product.imageUrl ?? product.images?.[0]?.url ?? fallbackImage,
+  images:
+    product.images?.map((image) => image.url) ??
+    (product.imageUrl ? [product.imageUrl] : []),
   seller: {
     id: product.seller?.id ?? sellerIdFallback,
     name: product.seller?.name ?? "Vendedor",

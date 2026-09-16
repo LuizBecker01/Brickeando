@@ -30,6 +30,7 @@ export function ProductDetailPage({
 }: ProductDetailPageProps) {
   const [product, setProduct] = useState<Product | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isOwnerMenuOpen, setIsOwnerMenuOpen] = useState(false);
 
   useEffect(() => {
@@ -38,11 +39,14 @@ export function ProductDetailPage({
         setIsLoading(true);
         const response = await api.getProductById(productId);
 
-        setProduct(normalizeProduct(response));
+        const normalizedProduct = normalizeProduct(response);
+        setProduct(normalizedProduct);
+        setSelectedImage(normalizedProduct.imageUrl ?? null);
       } catch {
         const foundDemoProduct =
           mockProducts.find((item) => item.id === productId) ?? mockProducts[0];
         setProduct(foundDemoProduct ?? null);
+        setSelectedImage(foundDemoProduct?.imageUrl ?? null);
       } finally {
         setIsLoading(false);
       }
@@ -60,15 +64,48 @@ export function ProductDetailPage({
   }
 
   const isOwner = Boolean(currentUserId && product.seller.id === currentUserId);
+  const productImages = product.images?.length
+    ? product.images
+    : product.imageUrl
+      ? [product.imageUrl]
+      : [];
+  const mainImage = selectedImage ?? productImages[0];
 
   return (
     <div>
       <div className="detail-layout">
-        <img
-          src={product.imageUrl ?? "https://placehold.co/600x400?text=Produto"}
-          alt={product.title}
-          className="detail-image"
-        />
+        <div className="detail-gallery">
+          <img
+            src={mainImage ?? "https://placehold.co/600x400?text=Produto"}
+            alt={product.title}
+            className="detail-image"
+          />
+          {productImages.length > 1 ? (
+            <div
+              className="detail-thumbnails"
+              aria-label="Outras fotos do anúncio"
+            >
+              {productImages.map((image, index) => (
+                <button
+                  type="button"
+                  key={`${image}-${index}`}
+                  className={
+                    image === mainImage
+                      ? "detail-thumbnail is-selected"
+                      : "detail-thumbnail"
+                  }
+                  onClick={() => setSelectedImage(image)}
+                  aria-label={`Ver foto ${index + 1}`}
+                >
+                  <img
+                    src={image}
+                    alt={`${product.title} - foto ${index + 1}`}
+                  />
+                </button>
+              ))}
+            </div>
+          ) : null}
+        </div>
 
         <aside className="detail-meta">
           <span className="detail-status">{formatStatus(product.status)}</span>

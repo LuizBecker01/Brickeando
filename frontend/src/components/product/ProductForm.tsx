@@ -40,7 +40,14 @@ export function ProductForm({
     Array<{ id: string; name: string; slug: string }>
   >([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>(() =>
-    initialProduct?.imageUrl ? [initialProduct.imageUrl] : [],
+    initialProduct?.images?.length
+      ? initialProduct.images
+      : initialProduct?.imageUrl
+        ? [initialProduct.imageUrl]
+        : [],
+  );
+  const [selectedPreview, setSelectedPreview] = useState<string | null>(
+    () => initialProduct?.images?.[0] ?? initialProduct?.imageUrl ?? null,
   );
   const { isLoaded: isMapsLoaded } = useJsApiLoader({
     id: "brickeando-google-maps",
@@ -50,7 +57,16 @@ export function ProductForm({
 
   useEffect(() => {
     setForm(getInitialForm(initialProduct));
-    setImagePreviews(initialProduct?.imageUrl ? [initialProduct.imageUrl] : []);
+    setImagePreviews(
+      initialProduct?.images?.length
+        ? initialProduct.images
+        : initialProduct?.imageUrl
+          ? [initialProduct.imageUrl]
+          : [],
+    );
+    setSelectedPreview(
+      initialProduct?.images?.[0] ?? initialProduct?.imageUrl ?? null,
+    );
   }, [initialProduct]);
 
   useEffect(() => {
@@ -121,6 +137,7 @@ export function ProductForm({
       .then((previews) => {
         const nextPreviews = [...imagePreviews, ...previews].slice(0, 5);
         setImagePreviews(nextPreviews);
+        setSelectedPreview((current) => current ?? nextPreviews[0] ?? null);
         setForm((current) => ({ ...current, imageUrl: nextPreviews[0] ?? "" }));
       })
       .catch((fileError: unknown) => {
@@ -277,11 +294,19 @@ export function ProductForm({
             {imagePreviews.length > 0 ? (
               <div className="photo-thumbnails">
                 {imagePreviews.map((preview, index) => (
-                  <img
+                  <button
+                    type="button"
                     key={`${preview.slice(0, 20)}-${index}`}
-                    src={preview}
-                    alt={`Foto ${index + 1}`}
-                  />
+                    className={
+                      preview === selectedPreview
+                        ? "photo-thumbnail is-selected"
+                        : "photo-thumbnail"
+                    }
+                    onClick={() => setSelectedPreview(preview)}
+                    aria-label={`Visualizar foto ${index + 1}`}
+                  >
+                    <img src={preview} alt={`Foto ${index + 1}`} />
+                  </button>
                 ))}
               </div>
             ) : null}
@@ -336,8 +361,11 @@ export function ProductForm({
 
         <div className="preview-card">
           <div className="preview-media">
-            {form.imageUrl ? (
-              <img src={form.imageUrl} alt="Prévia do anúncio" />
+            {(selectedPreview ?? form.imageUrl) ? (
+              <img
+                src={selectedPreview ?? form.imageUrl}
+                alt="Prévia do anúncio"
+              />
             ) : (
               <div className="preview-empty-media">
                 <span>Adicione uma foto</span>

@@ -42,22 +42,6 @@ export interface AuthSessionResponse {
   };
 }
 
-export interface ChatMessage {
-  id: string;
-  content: string;
-  createdAt?: string;
-  sender: { id: string; name: string | null };
-  receiver: { id: string; name: string | null };
-}
-
-export interface ConversationResponse {
-  id: string;
-  productId: string;
-  buyerId: string;
-  sellerId: string;
-  messages: ChatMessage[];
-}
-
 type ProductWritePayload = {
   title: string;
   description: string;
@@ -219,21 +203,6 @@ export const api = {
     const { data } = await apiClient.post<AuthSessionResponse>(
       "/users/google",
       { credential },
-    );
-    return data;
-  },
-
-  async createConversation(sellerId: string, productId: string) {
-    const { data } = await apiClient.post<ConversationResponse>(
-      "/chat/conversations",
-      { productId, sellerId },
-    );
-    return data;
-  },
-
-  async getConversationMessages(conversationId: string) {
-    const { data } = await apiClient.get<ChatMessage[]>(
-      `/chat/conversations/${conversationId}/messages`,
     );
     return data;
   },
