@@ -58,6 +58,17 @@ cd ..\frontend
 npm run build
 ```
 
+## Deploy no Render
+
+O arquivo `render.yaml` configura dois serviços no Render:
+
+- `brickeando-api`: Web Service Node.js com build TypeScript, Prisma Client e migrações antes da inicialização.
+- `brickeando-web`: Static Site servido a partir de `frontend/dist`.
+
+Na criação do Blueprint, informe as variáveis marcadas como `sync: false` no painel do Render. A API precisa de uma `DATABASE_URL` apontando para o PostgreSQL compartilhado, além de `JWT_SECRET` e `GOOGLE_CLIENT_ID`. No frontend, defina `VITE_API_URL` com a URL pública da API terminada em `/api` e configure as chaves do Google quando esses recursos forem usados.
+
+O backend deve ser publicado como Web Service, e não como função serverless, porque o chat usa Socket.IO e mantém conexões WebSocket. Depois do deploy da API, use sua URL pública no `VITE_API_URL` do Static Site e faça um novo deploy do frontend.
+
 ## Autenticação
 
 - Senha com 8+ caracteres, maiúscula, minúscula, número e caractere especial.
