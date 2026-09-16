@@ -2,6 +2,7 @@ import { createServer } from "http";
 import { Server as SocketServer } from "socket.io";
 import { Express } from "express";
 import { chatService } from "../services/chat.service";
+import { verifyAppToken } from "../utils/jwt";
 
 export const configureSocket = (app: Express) => {
   const httpServer = createServer(app);
@@ -13,6 +14,19 @@ export const configureSocket = (app: Express) => {
   });
 
   io.on("connection", (socket) => {
+    const token = socket.handshake.auth?.token;
+    if (typeof token !== "string") {
+      socket.disconnect(true);
+      return;
+    }
+
+    try {
+      socket.data.userId = verifyAppToken(token).sub;
+    } catch {
+      socket.disconnect(true);
+      return;
+    }
+
     socket.on("join_conversation", (conversationId: string) => {
       socket.join(`conversation:${conversationId}`);
     });
@@ -29,7 +43,7 @@ export const configureSocket = (app: Express) => {
         try {
           const message = await chatService.sendMessage({
             conversationId: payload.conversationId,
-            senderId: payload.senderId,
+            senderId: socket.data.userId,
             receiverId: payload.receiverId,
             content: payload.content,
             productId: payload.productId ?? null,

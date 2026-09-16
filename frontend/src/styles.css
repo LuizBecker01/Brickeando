@@ -1003,6 +1003,48 @@ select:focus-visible {
   min-height: 44px;
 }
 
+.password-requirements {
+  display: grid;
+  gap: 5px;
+  margin: 2px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.82rem;
+}
+
+.password-requirements li {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-weight: 700;
+}
+
+.password-requirements li span {
+  display: inline-grid;
+  width: 18px;
+  height: 18px;
+  place-items: center;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 0.72rem;
+}
+
+.password-requirements .is-valid {
+  color: #18733c;
+}
+
+.password-requirements .is-valid span {
+  background: #18733c;
+}
+
+.password-requirements .is-invalid {
+  color: var(--danger);
+}
+
+.password-requirements .is-invalid span {
+  background: var(--danger);
+}
+
 .auth-demo {
   width: 100%;
   margin-top: 4px;

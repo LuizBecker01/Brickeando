@@ -42,6 +42,42 @@ export interface AuthSessionResponse {
   };
 }
 
+export interface ChatMessage {
+  id: string;
+  content: string;
+  createdAt?: string;
+  sender: { id: string; name: string | null };
+  receiver: { id: string; name: string | null };
+}
+
+export interface ConversationResponse {
+  id: string;
+  productId: string;
+  buyerId: string;
+  sellerId: string;
+  messages: ChatMessage[];
+}
+
+type ProductWritePayload = {
+  title: string;
+  description: string;
+  price: number;
+  imageUrl?: string | null;
+  imageUrls?: string[];
+  locationName?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  categoryIds?: string[];
+  condition?: "NOVO" | "SEMINOVO" | "USADO" | "PARA_REPARO";
+  status?: "DISPONIVEL" | "RESERVADO" | "VENDIDO";
+};
+
+type CreateProductPayload = ProductWritePayload & {
+  sellerId?: string;
+};
+
+type UpdateProductPayload = Partial<ProductWritePayload>;
+
 const apiClient = axios.create({
   baseURL:
     (import.meta.env.VITE_API_URL as string | undefined) ??
@@ -107,20 +143,9 @@ export const api = {
     return data;
   },
 
-  async createProduct(payload: {
-    title: string;
-    description: string;
-    price: number;
-    imageUrl?: string;
-    imageUrls?: string[];
-    locationName?: string | null;
-    latitude?: number | null;
-    longitude?: number | null;
-    categoryIds?: string[];
-    condition?: "NOVO" | "SEMINOVO" | "USADO" | "PARA_REPARO";
-    status?: "DISPONIVEL" | "RESERVADO" | "VENDIDO";
-    sellerId?: string;
-  }): Promise<ProductApiResponse> {
+  async createProduct(
+    payload: CreateProductPayload,
+  ): Promise<ProductApiResponse> {
     try {
       const { data } = await apiClient.post<ProductApiResponse>(
         "/products",
@@ -134,19 +159,7 @@ export const api = {
 
   async updateProduct(
     productId: string,
-    payload: {
-      title?: string;
-      description?: string;
-      price?: number;
-      imageUrl?: string | null;
-      imageUrls?: string[];
-      locationName?: string | null;
-      latitude?: number | null;
-      longitude?: number | null;
-      categoryIds?: string[];
-      condition?: "NOVO" | "SEMINOVO" | "USADO" | "PARA_REPARO";
-      status?: "DISPONIVEL" | "RESERVADO" | "VENDIDO";
-    },
+    payload: UpdateProductPayload,
   ): Promise<ProductApiResponse> {
     try {
       const { data } = await apiClient.put<ProductApiResponse>(
@@ -206,6 +219,21 @@ export const api = {
     const { data } = await apiClient.post<AuthSessionResponse>(
       "/users/google",
       { credential },
+    );
+    return data;
+  },
+
+  async createConversation(sellerId: string, productId: string) {
+    const { data } = await apiClient.post<ConversationResponse>(
+      "/chat/conversations",
+      { productId, sellerId },
+    );
+    return data;
+  },
+
+  async getConversationMessages(conversationId: string) {
+    const { data } = await apiClient.get<ChatMessage[]>(
+      `/chat/conversations/${conversationId}/messages`,
     );
     return data;
   },

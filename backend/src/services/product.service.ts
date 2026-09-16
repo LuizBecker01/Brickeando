@@ -30,63 +30,12 @@ const normalizeStatus = (status?: string): ProductStatus | undefined => {
   );
 };
 
-const validateCreateProductInput = (payload: CreateProductDto): void => {
-  if (!payload.title || payload.title.trim().length < 3) {
-    throw new AppError(
-      "O título do produto deve conter pelo menos 3 caracteres.",
-      HttpStatus.BAD_REQUEST,
-    );
-  }
-
-  if (!payload.description || payload.description.trim().length < 10) {
-    throw new AppError(
-      "A descrição deve conter pelo menos 10 caracteres.",
-      HttpStatus.BAD_REQUEST,
-    );
-  }
-
-  if (!payload.sellerId || payload.sellerId.trim().length === 0) {
-    throw new AppError(
-      "O identificador do vendedor é obrigatório.",
-      HttpStatus.BAD_REQUEST,
-    );
-  }
-
-  if (payload.price === undefined || Number(payload.price) <= 0) {
-    throw new AppError(
-      "O preço deve ser maior que zero.",
-      HttpStatus.BAD_REQUEST,
-    );
-  }
-
-  if (payload.categoryIds && payload.categoryIds.length > 0) {
-    const uniqueIds = new Set(payload.categoryIds);
-
-    if (uniqueIds.size !== payload.categoryIds.length) {
-      throw new AppError(
-        "As categorias não podem se repetir.",
-        HttpStatus.BAD_REQUEST,
-      );
-    }
-  }
-};
-
-const validateUpdateProductInput = (payload: UpdateProductDto): void => {
-  const hasAnyField =
-    payload.title !== undefined ||
-    payload.description !== undefined ||
-    payload.price !== undefined ||
-    payload.imageUrl !== undefined ||
-    payload.status !== undefined ||
-    payload.categoryIds !== undefined;
-
-  if (!hasAnyField) {
-    throw new AppError(
-      "Informe ao menos um campo para atualização.",
-      HttpStatus.BAD_REQUEST,
-    );
-  }
-
+const validateSharedProductFields = (payload: {
+  title?: string;
+  description?: string;
+  price?: number | string;
+  categoryIds?: string[];
+}): void => {
   if (payload.title !== undefined && payload.title.trim().length < 3) {
     throw new AppError(
       "O título do produto deve conter pelo menos 3 caracteres.",
@@ -121,6 +70,57 @@ const validateUpdateProductInput = (payload: UpdateProductDto): void => {
       );
     }
   }
+};
+
+const validateCreateProductInput = (payload: CreateProductDto): void => {
+  if (!payload.title || payload.title.trim().length < 3) {
+    throw new AppError(
+      "O título do produto deve conter pelo menos 3 caracteres.",
+      HttpStatus.BAD_REQUEST,
+    );
+  }
+
+  if (!payload.description) {
+    throw new AppError(
+      "A descrição deve conter pelo menos 10 caracteres.",
+      HttpStatus.BAD_REQUEST,
+    );
+  }
+
+  if (!payload.sellerId || payload.sellerId.trim().length === 0) {
+    throw new AppError(
+      "O identificador do vendedor é obrigatório.",
+      HttpStatus.BAD_REQUEST,
+    );
+  }
+
+  if (payload.price === undefined) {
+    throw new AppError(
+      "O preço deve ser maior que zero.",
+      HttpStatus.BAD_REQUEST,
+    );
+  }
+
+  validateSharedProductFields(payload);
+};
+
+const validateUpdateProductInput = (payload: UpdateProductDto): void => {
+  const hasAnyField =
+    payload.title !== undefined ||
+    payload.description !== undefined ||
+    payload.price !== undefined ||
+    payload.imageUrl !== undefined ||
+    payload.status !== undefined ||
+    payload.categoryIds !== undefined;
+
+  if (!hasAnyField) {
+    throw new AppError(
+      "Informe ao menos um campo para atualização.",
+      HttpStatus.BAD_REQUEST,
+    );
+  }
+
+  validateSharedProductFields(payload);
 };
 
 export const productService = {

@@ -10,6 +10,7 @@ import type { ProductFilters as ProductFilterValues } from "./services/api";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import type { Product } from "./types/product";
 import { mockProducts } from "./data/mockProducts";
+import { normalizeProduct } from "./utils/product";
 import "./styles.css";
 
 function App() {
@@ -32,44 +33,6 @@ function App() {
   >([]);
   const [filters, setFilters] = useState<ProductFilterValues>({ radiusKm: 25 });
 
-  const refreshProducts = async () => {
-    try {
-      const response = await api.getProducts();
-      const normalizedProducts = response.map((product) => ({
-        id: product.id,
-        title: product.title,
-        description: product.description,
-        price: Number(product.price),
-        status: product.status,
-        condition: product.condition,
-        locationName: product.locationName,
-        latitude: product.latitude,
-        longitude: product.longitude,
-        imageUrl:
-          product.imageUrl ??
-          product.images?.[0]?.url ??
-          "https://placehold.co/900x700?text=Brickeando",
-        seller: {
-          id: product.seller?.id ?? "",
-          name: product.seller?.name ?? "Vendedor",
-        },
-        categories: Array.isArray(product.categories)
-          ? product.categories.map((item) => ({
-              id: item.category?.id ?? item.id ?? "",
-              name: item.category?.name ?? item.name ?? "Categoria",
-            }))
-          : [],
-      }));
-
-      setProducts(normalizedProducts);
-      if (!selectedProductId && normalizedProducts[0]) {
-        setSelectedProductId(normalizedProducts[0].id);
-      }
-    } catch {
-      setProducts(mockProducts);
-    }
-  };
-
   useEffect(() => {
     const loadProducts = async () => {
       try {
@@ -81,31 +44,9 @@ function App() {
         setCategories(categoryResponse);
 
         if (response.length > 0) {
-          const normalizedProducts = response.map((product) => ({
-            id: product.id,
-            title: product.title,
-            description: product.description,
-            price: Number(product.price),
-            status: product.status,
-            condition: product.condition,
-            locationName: product.locationName,
-            latitude: product.latitude,
-            longitude: product.longitude,
-            imageUrl:
-              product.imageUrl ??
-              product.images?.[0]?.url ??
-              "https://placehold.co/900x700?text=Brickeando",
-            seller: {
-              id: product.seller?.id ?? "",
-              name: product.seller?.name ?? "Vendedor",
-            },
-            categories: Array.isArray(product.categories)
-              ? product.categories.map((item) => ({
-                  id: item.category?.id ?? item.id ?? "",
-                  name: item.category?.name ?? item.name ?? "Categoria",
-                }))
-              : [],
-          }));
+          const normalizedProducts = response.map((product) =>
+            normalizeProduct(product),
+          );
 
           setProducts(normalizedProducts);
           setSelectedProductId(
@@ -329,18 +270,16 @@ function App() {
           >
             Voltar para os anúncios
           </button>
-          {selectedProductId ? (
-            <ProductDetailPage
-              productId={selectedProductId}
-              currentUserId={user.id}
-              onEdit={(product) => {
-                setEditingProductId(product.id);
-                setCurrentView("form");
-                window.scrollTo({ top: 0, behavior: "smooth" });
-              }}
-              onDelete={handleDeleteProduct}
-            />
-          ) : null}
+          <ProductDetailPage
+            productId={selectedProductId}
+            currentUserId={user.id}
+            onEdit={(product) => {
+              setEditingProductId(product.id);
+              setCurrentView("form");
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }}
+            onDelete={handleDeleteProduct}
+          />
         </section>
       ) : null}
     </main>

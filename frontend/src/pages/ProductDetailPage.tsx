@@ -3,6 +3,7 @@ import { ChatWindow } from "../components/chat/ChatWindow";
 import type { Product } from "../types/product";
 import { api } from "../services/api";
 import { mockProducts } from "../data/mockProducts";
+import { normalizeProduct } from "../utils/product";
 
 const formatStatus = (status: Product["status"]) => {
   const labels: Record<Product["status"], string> = {
@@ -29,7 +30,6 @@ export function ProductDetailPage({
 }: ProductDetailPageProps) {
   const [product, setProduct] = useState<Product | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [isOwnerMenuOpen, setIsOwnerMenuOpen] = useState(false);
 
   useEffect(() => {
@@ -38,35 +38,11 @@ export function ProductDetailPage({
         setIsLoading(true);
         const response = await api.getProductById(productId);
 
-        const normalizedProduct: Product = {
-          id: response.id,
-          title: response.title,
-          description: response.description,
-          price: Number(response.price),
-          status: response.status,
-          condition: response.condition,
-          imageUrl:
-            response.imageUrl ??
-            response.images?.[0]?.url ??
-            "https://placehold.co/900x700?text=Brickeando",
-          seller: {
-            id: response.seller?.id ?? "",
-            name: response.seller?.name ?? "Vendedor",
-          },
-          categories: Array.isArray(response.categories)
-            ? response.categories.map((item) => ({
-                id: item.category?.id ?? item.id ?? "",
-                name: item.category?.name ?? item.name ?? "Categoria",
-              }))
-            : [],
-        };
-
-        setProduct(normalizedProduct);
+        setProduct(normalizeProduct(response));
       } catch {
         const foundDemoProduct =
           mockProducts.find((item) => item.id === productId) ?? mockProducts[0];
         setProduct(foundDemoProduct ?? null);
-        setError(null);
       } finally {
         setIsLoading(false);
       }
@@ -77,10 +53,6 @@ export function ProductDetailPage({
 
   if (isLoading) {
     return <p>Carregando detalhe do produto...</p>;
-  }
-
-  if (error) {
-    return <p style={{ color: "crimson" }}>{error}</p>;
   }
 
   if (!product) {
@@ -150,7 +122,11 @@ export function ProductDetailPage({
       </div>
 
       <div className="chat-panel">
-        <ChatWindow productId={product.id} sellerId={product.seller.id} />
+        <ChatWindow
+          productId={product.id}
+          sellerId={product.seller.id}
+          sellerName={product.seller.name}
+        />
       </div>
     </div>
   );

@@ -1,110 +1,142 @@
 import { FormEvent, useEffect, useState } from "react";
 import { io, Socket } from "socket.io-client";
-
-interface Message {
-  id: string;
-  content: string;
-  sender: {
-    id: string;
-    name: string;
-  };
-  receiver: {
-    id: string;
-    name: string;
-  };
-}
+import { useAuth } from "../../contexts/AuthContext";
+import { api, type ChatMessage } from "../../services/api";
 
 interface ChatWindowProps {
   productId: string;
   sellerId: string;
+  sellerName?: string;
 }
 
-const BASE_URL = "http://localhost:777";
+const socketUrl =
+  (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/api\/?$/, "") ??
+  "http://localhost:777";
 
-export function ChatWindow({ productId, sellerId }: ChatWindowProps) {
-  const [messages, setMessages] = useState<Message[]>(
-    [
-      {
-        id: "initial",
-        content: "Olá! Estou interessado neste produto e queria saber mais detalhes.",
-        sender: { id: "buyer-1", name: "Você" },
-        receiver: { id: sellerId, name: "Vendedor" },
-      },
-    ]
-  );
+export function ChatWindow({ productId, sellerId, sellerName }: ChatWindowProps) {
+  const { user } = useAuth();
+  const [conversationId, setConversationId] = useState<string | null>(null);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [draft, setDraft] = useState("");
   const [socket, setSocket] = useState<Socket | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const socketInstance = io(BASE_URL, { transports: ["websocket"] });
-    setSocket(socketInstance);
-
-    socketInstance.emit("join_conversation", productId);
-
-    socketInstance.on("new_message", (message: Message) => {
-      setMessages((current) => [...current, message]);
-    });
-
-    return () => {
-      socketInstance.disconnect();
-    };
-  }, [productId, sellerId]);
-
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-
-    if (!draft.trim()) {
+    if (!user || user.id === sellerId) {
+      setIsLoading(false);
       return;
     }
 
-    const nextMessage: Message = {
-      id: crypto.randomUUID(),
-      content: draft.trim(),
-      sender: { id: "buyer-1", name: "Você" },
-      receiver: { id: sellerId, name: "Vendedor" },
+    let isMounted = true;
+    const loadConversation = async () => {
+      try {
+        const conversation = await api.createConversation(sellerId, productId);
+        if (!isMounted) return;
+
+        setConversationId(conversation.id);
+        setMessages(conversation.messages ?? []);
+
+        const socketInstance = io(socketUrl, {
+          transports: ["websocket"],
+          auth: { token: localStorage.getItem("@Brickeando:token") },
+        });
+        socketInstance.emit("join_conversation", conversation.id);
+        socketInstance.on("new_message", (message: ChatMessage) => {
+          setMessages((current) =>
+            current.some((item) => item.id === message.id)
+              ? current
+              : [...current, message],
+          );
+        });
+        socketInstance.on("message_error", (message: string) => {
+          setError(message);
+        });
+        setSocket(socketInstance);
+      } catch (loadError) {
+        if (isMounted) {
+          setError(
+            loadError instanceof Error
+              ? loadError.message
+              : "Não foi possível carregar o chat.",
+          );
+        }
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
     };
 
-    setMessages((current) => [...current, nextMessage]);
-    socket?.emit("send_message", {
-      conversationId: productId,
-      senderId: "buyer-1",
+    loadConversation();
+
+    return () => {
+      isMounted = false;
+      setSocket((current) => {
+        current?.disconnect();
+        return null;
+      });
+    };
+  }, [productId, sellerId, user]);
+
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const content = draft.trim();
+
+    if (!content || !socket || !conversationId || !user) return;
+
+    socket.emit("send_message", {
+      conversationId,
+      senderId: user.id,
       receiverId: sellerId,
-      content: draft.trim(),
+      content,
       productId,
     });
     setDraft("");
   };
 
+  if (user?.id === sellerId) {
+    return <p>Este é o seu anúncio. O chat fica disponível para compradores.</p>;
+  }
+
   return (
     <div>
-      <h3 style={{ margin: "0 0 16px" }}>Chat da negociação</h3>
+      <h3 style={{ margin: "0 0 16px" }}>Chat com {sellerName ?? "vendedor"}</h3>
 
-      <div className="chat-list">
-        {messages.map((message) => {
-          const isCurrentUser = message.sender.id === "buyer-1";
+      {isLoading ? <p>Carregando conversa...</p> : null}
+      {error ? <p className="auth-error">{error}</p> : null}
 
-          return (
-            <div
-              key={message.id}
-              className={`chat-bubble ${isCurrentUser ? "is-current" : "is-other"}`}
-            >
-              <strong>{message.sender.name}</strong>
-              <p style={{ margin: "6px 0 0" }}>{message.content}</p>
-            </div>
-          );
-        })}
-      </div>
+      {!isLoading ? (
+        <>
+          <div className="chat-list">
+            {messages.length === 0 ? <p>Nenhuma mensagem ainda.</p> : null}
+            {messages.map((message) => {
+              const isCurrentUser = message.sender.id === user?.id;
 
-      <form onSubmit={handleSubmit} className="chat-form">
-        <input
-          value={draft}
-          onChange={(event) => setDraft(event.target.value)}
-          placeholder="Digite sua mensagem"
-        />
-        <button type="submit" className="primary-button">
-          Enviar
-        </button>
-      </form>
+              return (
+                <div
+                  key={message.id}
+                  className={`chat-bubble ${isCurrentUser ? "is-current" : "is-other"}`}
+                >
+                  <strong>{message.sender.name ?? "Usuário"}</strong>
+                  <p style={{ margin: "6px 0 0" }}>{message.content}</p>
+                </div>
+              );
+            })}
+          </div>
+
+          <form onSubmit={handleSubmit} className="chat-form">
+            <input
+              value={draft}
+              onChange={(event) => setDraft(event.target.value)}
+              placeholder="Digite sua mensagem"
+              disabled={!socket}
+            />
+            <button type="submit" className="primary-button" disabled={!socket}>
+              Enviar
+            </button>
+          </form>
+        </>
+      ) : null}
     </div>
   );
 }
+

@@ -12,11 +12,15 @@ export const chatService = {
     return chatRepository.findConversationsByUser(userId);
   },
 
-  async getMessagesByConversationId(conversationId: string) {
+  async getMessagesByConversationId(conversationId: string, userId: string) {
     const conversation = await chatRepository.findConversationById(conversationId);
 
     if (!conversation) {
       throw new AppError("Conversa não encontrada.", HttpStatus.NOT_FOUND);
+    }
+
+    if (![conversation.buyerId, conversation.sellerId].includes(userId)) {
+      throw new AppError("O usuário não pertence a esta conversa.", HttpStatus.FORBIDDEN);
     }
 
     return chatRepository.findMessagesByConversationId(conversationId);

@@ -11,6 +11,26 @@ interface LoginScreenProps {
 
 const cleanCpf = (value: string) => value.replace(/\D/g, "").slice(0, 11);
 
+const passwordRequirements = [
+  {
+    label: "Pelo menos 8 caracteres",
+    test: (value: string) => value.length >= 8,
+  },
+  {
+    label: "Uma letra maiúscula",
+    test: (value: string) => /[A-Z]/.test(value),
+  },
+  {
+    label: "Uma letra minúscula",
+    test: (value: string) => /[a-z]/.test(value),
+  },
+  { label: "Um número", test: (value: string) => /[0-9]/.test(value) },
+  {
+    label: "Um caractere especial",
+    test: (value: string) => /[!@#$%^&*(),.?":{}|<>]/.test(value),
+  },
+];
+
 export function LoginScreen({ onLogin, authError }: LoginScreenProps) {
   const [mode, setMode] = useState<"login" | "register">("login");
   const [cpf, setCpf] = useState("");
@@ -114,8 +134,33 @@ export function LoginScreen({ onLogin, authError }: LoginScreenProps) {
               type="password"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
-              placeholder="Mínimo 8 caracteres"
+              minLength={mode === "register" ? 8 : undefined}
+              placeholder={
+                mode === "register"
+                  ? "Mínimo 8, maiúscula e especial"
+                  : "Digite sua senha"
+              }
             />
+            {mode === "register" ? (
+              <ul
+                className="password-requirements"
+                aria-label="Requisitos da senha"
+              >
+                {passwordRequirements.map((requirement) => {
+                  const isValid = requirement.test(password);
+
+                  return (
+                    <li
+                      key={requirement.label}
+                      className={isValid ? "is-valid" : "is-invalid"}
+                    >
+                      <span aria-hidden="true">{isValid ? "✓" : "!"}</span>
+                      {requirement.label}
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : null}
           </label>
 
           <button

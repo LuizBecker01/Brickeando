@@ -2,6 +2,7 @@ import { ChangeEvent, FormEvent, useEffect, useState } from "react";
 import { useJsApiLoader } from "@react-google-maps/api";
 import type { Product, ProductFormData } from "../../types/product";
 import { api } from "../../services/api";
+import { normalizeProduct } from "../../utils/product";
 
 const getInitialForm = (product?: Product | null): ProductFormData => ({
   title: product?.title ?? "",
@@ -175,31 +176,10 @@ export function ProductForm({
           })
         : await api.createProduct(payload);
 
-      const normalizedProduct: Product = {
-        id: createdOrUpdatedProduct.id,
-        title: createdOrUpdatedProduct.title,
-        description: createdOrUpdatedProduct.description,
-        price: Number(createdOrUpdatedProduct.price),
-        status: createdOrUpdatedProduct.status,
-        condition: createdOrUpdatedProduct.condition,
-        locationName: createdOrUpdatedProduct.locationName,
-        latitude: createdOrUpdatedProduct.latitude,
-        longitude: createdOrUpdatedProduct.longitude,
-        imageUrl:
-          createdOrUpdatedProduct.imageUrl ??
-          createdOrUpdatedProduct.images?.[0]?.url ??
-          "https://placehold.co/900x700?text=Brickeando",
-        seller: {
-          id: createdOrUpdatedProduct.seller?.id ?? sellerId,
-          name: createdOrUpdatedProduct.seller?.name ?? "Vendedor",
-        },
-        categories: Array.isArray(createdOrUpdatedProduct.categories)
-          ? createdOrUpdatedProduct.categories.map((item) => ({
-              id: item.category?.id ?? item.id ?? "",
-              name: item.category?.name ?? item.name ?? "Categoria",
-            }))
-          : [],
-      };
+      const normalizedProduct = normalizeProduct(
+        createdOrUpdatedProduct,
+        sellerId,
+      );
 
       onSuccess?.(normalizedProduct);
       setForm(getInitialForm());

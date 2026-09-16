@@ -1,5 +1,21 @@
 import { prisma } from "../config/prisma";
-import { CreateConversationDto, CreateMessageDto } from "../dtos/chat/create-message.dto";
+import {
+  CreateConversationDto,
+  CreateMessageDto,
+} from "../dtos/chat/create-message.dto";
+
+const conversationInclude = {
+  product: true,
+  buyer: { select: { id: true, name: true, email: true } },
+  seller: { select: { id: true, name: true, email: true } },
+  messages: {
+    orderBy: { createdAt: "asc" as const },
+    include: {
+      sender: { select: { id: true, name: true, email: true } },
+      receiver: { select: { id: true, name: true, email: true } },
+    },
+  },
+} as const;
 
 export const chatRepository = {
   async findConversationByProductAndUsers(data: CreateConversationDto) {
@@ -9,18 +25,7 @@ export const chatRepository = {
         buyerId: data.buyerId,
         sellerId: data.sellerId,
       },
-      include: {
-        product: true,
-        buyer: { select: { id: true, name: true, email: true } },
-        seller: { select: { id: true, name: true, email: true } },
-        messages: {
-          orderBy: { createdAt: "asc" },
-          include: {
-            sender: { select: { id: true, name: true, email: true } },
-            receiver: { select: { id: true, name: true, email: true } },
-          },
-        },
-      },
+      include: conversationInclude,
     });
   },
 
@@ -31,36 +36,14 @@ export const chatRepository = {
         buyerId: data.buyerId,
         sellerId: data.sellerId,
       },
-      include: {
-        product: true,
-        buyer: { select: { id: true, name: true, email: true } },
-        seller: { select: { id: true, name: true, email: true } },
-        messages: {
-          orderBy: { createdAt: "asc" },
-          include: {
-            sender: { select: { id: true, name: true, email: true } },
-            receiver: { select: { id: true, name: true, email: true } },
-          },
-        },
-      },
+      include: conversationInclude,
     });
   },
 
   async findConversationById(id: string) {
     return prisma.conversation.findUnique({
       where: { id },
-      include: {
-        product: true,
-        buyer: { select: { id: true, name: true, email: true } },
-        seller: { select: { id: true, name: true, email: true } },
-        messages: {
-          orderBy: { createdAt: "asc" },
-          include: {
-            sender: { select: { id: true, name: true, email: true } },
-            receiver: { select: { id: true, name: true, email: true } },
-          },
-        },
-      },
+      include: conversationInclude,
     });
   },
 

@@ -5,7 +5,7 @@ import {
   CircleF,
   MarkerF,
 } from "@react-google-maps/api";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ProductFilters as ProductFilterValues } from "../../services/api";
 
 interface CategoryOption {
@@ -32,6 +32,8 @@ export function ProductFilters({
   onClear,
 }: ProductFiltersProps) {
   const [isMapOpen, setIsMapOpen] = useState(false);
+  const [mapsError, setMapsError] = useState(false);
+  const [isMapsLoaded, setIsMapsLoaded] = useState(false);
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
   const [draftLocation, setDraftLocation] = useState({
     locationName: filters.locationName ?? "",
@@ -50,6 +52,64 @@ export function ProductFilters({
     });
     setIsMapOpen(true);
   };
+
+  useEffect(() => {
+    if (
+      !isMapOpen ||
+      draftLocation.latitude !== undefined ||
+      draftLocation.longitude !== undefined ||
+      !navigator.geolocation
+    ) {
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        setDraftLocation((current) => ({
+          ...current,
+          locationName: "Minha localização",
+          latitude: coords.latitude,
+          longitude: coords.longitude,
+        }));
+      },
+      () => undefined,
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 },
+    );
+  }, [isMapOpen, draftLocation.latitude, draftLocation.longitude]);
+
+  useEffect(() => {
+    if (
+      !isMapsLoaded ||
+      draftLocation.latitude === undefined ||
+      draftLocation.longitude === undefined ||
+      draftLocation.locationName !== "Minha localização"
+    ) {
+      return;
+    }
+
+    const geocoder = new google.maps.Geocoder();
+    geocoder.geocode(
+      {
+        location: {
+          lat: draftLocation.latitude,
+          lng: draftLocation.longitude,
+        },
+      },
+      (results, status) => {
+        if (status === "OK" && results?.[0]) {
+          setDraftLocation((current) => ({
+            ...current,
+            locationName: results[0].formatted_address,
+          }));
+        }
+      },
+    );
+  }, [
+    isMapsLoaded,
+    draftLocation.latitude,
+    draftLocation.longitude,
+    draftLocation.locationName,
+  ]);
 
   const applyLocation = () => {
     onChange({ ...filters, ...draftLocation });
@@ -182,7 +242,24 @@ export function ProductFilters({
             </div>
 
             {mapsApiKey ? (
-              <LoadScript googleMapsApiKey={mapsApiKey} libraries={["places"]}>
+              <LoadScript
+                googleMapsApiKey={mapsApiKey}
+                libraries={["places"]}
+                loadingElement={
+                  <p className="map-help">Carregando mapa e busca...</p>
+                }
+                onLoad={() => {
+                  setMapsError(false);
+                  setIsMapsLoaded(true);
+                }}
+                onError={() => setMapsError(true)}
+              >
+                {mapsError ? (
+                  <p className="map-help">
+                    Não foi possível carregar o mapa. Verifique a chave do
+                    Google Maps.
+                  </p>
+                ) : null}
                 <Autocomplete
                   onLoad={(autocomplete) => {
                     autocompleteRef.current = autocomplete;
