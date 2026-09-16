@@ -2,7 +2,11 @@ import { NextFunction, Request, Response } from "express";
 import { chatService } from "../services/chat.service";
 
 export const chatController = {
-  async getUserConversations(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async getUserConversations(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
     try {
       const userId = req.user?.id;
       if (!userId || userId !== req.params.userId) {
@@ -16,7 +20,11 @@ export const chatController = {
     }
   },
 
-  async getConversationMessages(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async getConversationMessages(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
     try {
       const conversationId = req.params.conversationId;
       if (!req.user?.id) {
@@ -33,7 +41,11 @@ export const chatController = {
     }
   },
 
-  async createConversation(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async createConversation(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
     try {
       const conversation = await chatService.createConversation({
         ...req.body,
@@ -45,7 +57,11 @@ export const chatController = {
     }
   },
 
-  async sendMessage(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async sendMessage(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
     try {
       const message = await chatService.sendMessage({
         ...req.body,

@@ -49,9 +49,15 @@ export const configureSocket = (app: Express) => {
             productId: payload.productId ?? null,
           });
 
-          io.to(`conversation:${payload.conversationId}`).emit("new_message", message);
+          io.to(`conversation:${payload.conversationId}`).emit(
+            "new_message",
+            message,
+          );
         } catch (error) {
-          socket.emit("message_error", error instanceof Error ? error.message : "Erro ao enviar mensagem.");
+          socket.emit(
+            "message_error",
+            error instanceof Error ? error.message : "Erro ao enviar mensagem.",
+          );
         }
       },
     );

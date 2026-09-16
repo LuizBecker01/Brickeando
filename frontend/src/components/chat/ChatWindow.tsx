@@ -10,10 +10,16 @@ interface ChatWindowProps {
 }
 
 const socketUrl =
-  (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/api\/?$/, "") ??
-  "http://localhost:777";
+  (import.meta.env.VITE_API_URL as string | undefined)?.replace(
+    /\/api\/?$/,
+    "",
+  ) ?? "http://localhost:777";
 
-export function ChatWindow({ productId, sellerId, sellerName }: ChatWindowProps) {
+export function ChatWindow({
+  productId,
+  sellerId,
+  sellerName,
+}: ChatWindowProps) {
   const { user } = useAuth();
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -94,12 +100,16 @@ export function ChatWindow({ productId, sellerId, sellerName }: ChatWindowProps)
   };
 
   if (user?.id === sellerId) {
-    return <p>Este é o seu anúncio. O chat fica disponível para compradores.</p>;
+    return (
+      <p>Este é o seu anúncio. O chat fica disponível para compradores.</p>
+    );
   }
 
   return (
     <div>
-      <h3 style={{ margin: "0 0 16px" }}>Chat com {sellerName ?? "vendedor"}</h3>
+      <h3 style={{ margin: "0 0 16px" }}>
+        Chat com {sellerName ?? "vendedor"}
+      </h3>
 
       {isLoading ? <p>Carregando conversa...</p> : null}
       {error ? <p className="auth-error">{error}</p> : null}
@@ -139,4 +149,3 @@ export function ChatWindow({ productId, sellerId, sellerName }: ChatWindowProps)
     </div>
   );
 }
-
