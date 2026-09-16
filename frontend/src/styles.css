@@ -1001,15 +1001,16 @@ select:focus-visible {
 
 .auth-shell {
   display: grid;
-  min-height: 100vh;
+  min-height: 100dvh;
   place-items: center;
   padding: 24px;
+  overflow-y: auto;
   background: #f4f6f5;
 }
 
 .auth-card {
   width: min(460px, 100%);
-  padding: 28px;
+  padding: clamp(16px, 3vh, 28px);
   background: var(--paper);
   border: 1px solid var(--line);
   border-radius: 10px;
@@ -1018,8 +1019,8 @@ select:focus-visible {
 
 .auth-logo {
   display: block;
-  width: 120px;
-  margin: 0 auto 22px;
+  width: clamp(78px, 12vh, 120px);
+  margin: 0 auto clamp(10px, 2vh, 22px);
 }
 
 .auth-card h1 {
@@ -1029,7 +1030,7 @@ select:focus-visible {
 }
 
 .auth-card > p {
-  margin: 8px 0 22px;
+  margin: 8px 0 clamp(12px, 2vh, 22px);
   color: var(--muted);
 }
 
@@ -1037,7 +1038,7 @@ select:focus-visible {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 6px;
-  margin-bottom: 20px;
+  margin-bottom: clamp(12px, 2vh, 20px);
   padding: 4px;
   background: var(--soft);
   border-radius: 7px;
@@ -1056,7 +1057,7 @@ select:focus-visible {
 
 .auth-form {
   display: grid;
-  gap: 14px;
+  gap: clamp(9px, 1.5vh, 14px);
 }
 
 .auth-form input {
@@ -1230,6 +1231,48 @@ select:focus-visible {
 
   .filters-fields {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-height: 700px) and (min-width: 421px) {
+  .auth-shell {
+    place-items: start center;
+    padding: 12px 24px;
+  }
+
+  .auth-card {
+    padding: 14px 24px;
+  }
+
+  .auth-logo {
+    width: 72px;
+    margin-bottom: 8px;
+  }
+
+  .auth-card h1 {
+    font-size: 1.5rem;
+  }
+
+  .auth-card > p {
+    margin: 5px 0 12px;
+  }
+
+  .auth-toggle {
+    margin-bottom: 10px;
+  }
+
+  .auth-form input {
+    min-height: 38px;
+  }
+
+  .password-requirements {
+    gap: 2px;
+    font-size: 0.76rem;
+  }
+
+  .password-requirements li span {
+    width: 16px;
+    height: 16px;
   }
 }
 
