@@ -1017,14 +1017,9 @@ select:focus-visible {
   box-shadow: var(--shadow);
 }
 
-.auth-logo {
-  display: block;
-  width: clamp(78px, 12vh, 120px);
-  margin: 0 auto clamp(10px, 2vh, 22px);
-}
-
 .auth-card h1 {
   margin: 0;
+  text-align: center;
   font-size: 1.8rem;
   line-height: 1.15;
 }
@@ -1045,6 +1040,8 @@ select:focus-visible {
 }
 
 .auth-tab {
+  min-height: 36px;
+  padding: 7px 10px;
   background: transparent;
   color: var(--muted);
 }
@@ -1242,11 +1239,6 @@ select:focus-visible {
 
   .auth-card {
     padding: 14px 24px;
-  }
-
-  .auth-logo {
-    width: 72px;
-    margin-bottom: 8px;
   }
 
   .auth-card h1 {

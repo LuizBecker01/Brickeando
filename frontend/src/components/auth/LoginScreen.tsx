@@ -83,7 +83,6 @@ export function LoginScreen({ onLogin, authError }: LoginScreenProps) {
   return (
     <main className="auth-shell">
       <div className="auth-card">
-        <img src="/logo.png" alt="Brickeando" className="auth-logo" />
         <h1>Entrar no Brickeando</h1>
         <p>
           Para anunciar ou conversar com vendedores, você precisa estar logado.
