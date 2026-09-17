@@ -20,6 +20,36 @@ const mapsApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as
   | string
   | undefined;
 
+const readOptimizedImage = (file: File): Promise<string> =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const image = new Image();
+      image.onload = () => {
+        const maxDimension = 1600;
+        const scale = Math.min(
+          1,
+          maxDimension / Math.max(image.naturalWidth, image.naturalHeight),
+        );
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+        canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+        canvas
+          .getContext("2d")
+          ?.drawImage(image, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL("image/jpeg", 0.82));
+      };
+      image.onerror = () =>
+        reject(
+          new Error("Não foi possível processar uma das imagens selecionadas."),
+        );
+      image.src = typeof reader.result === "string" ? reader.result : "";
+    };
+    reader.onerror = () =>
+      reject(new Error("Não foi possível anexar as imagens selecionadas."));
+    reader.readAsDataURL(file);
+  });
+
 interface ProductFormProps {
   onSuccess?: (product: Product) => void;
   initialProduct?: Product | null;
@@ -120,19 +150,7 @@ export function ProductForm({
     }
 
     Promise.all(
-      files.map(
-        (file) =>
-          new Promise<string>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () =>
-              resolve(typeof reader.result === "string" ? reader.result : "");
-            reader.onerror = () =>
-              reject(
-                new Error("Não foi possível anexar as imagens selecionadas."),
-              );
-            reader.readAsDataURL(file);
-          }),
-      ),
+      files.map(readOptimizedImage),
     )
       .then((previews) => {
         const nextPreviews = [...imagePreviews, ...previews].slice(0, 5);

@@ -7,6 +7,17 @@ export const errorHandlerMiddleware = (
   res: Response,
   _next: NextFunction,
 ): void => {
+  const errorStatus = (error as { status?: unknown })?.status;
+
+  if (errorStatus === 413) {
+    res.status(413).json({
+      message:
+        "As imagens são muito grandes. Reduza o tamanho e tente novamente.",
+      details: null,
+    });
+    return;
+  }
+
   if (error instanceof AppError) {
     res.status(error.statusCode).json({
       message: error.message,
